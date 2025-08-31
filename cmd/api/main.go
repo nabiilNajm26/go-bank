@@ -13,6 +13,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -45,9 +46,10 @@ func main() {
 	}
 
 	// Database configuration
+	dbPort, _ := strconv.Atoi(getEnv("DB_PORT", "5432"))
 	dbConfig := &database.Config{
 		Host:         getEnv("DB_HOST", "localhost"),
-		Port:         5432,
+		Port:         dbPort,
 		User:         getEnv("DB_USER", "postgres"),
 		Password:     getEnv("DB_PASSWORD", "postgres"),
 		DBName:       getEnv("DB_NAME", "gobank"),

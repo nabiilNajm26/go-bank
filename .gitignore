@@ -76,4 +76,5 @@ docker-volumes/
 
 # Config files with secrets
 config.local.yaml
-secrets.yaml
+secrets.yaml.env
+AWSCLIV2.pkg
