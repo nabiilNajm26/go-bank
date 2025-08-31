@@ -6,11 +6,13 @@ Banking API built with Go and PostgreSQL. Created as a personal project to learn
 
 - Go with Fiber web framework
 - PostgreSQL database
-- JWT authentication
+- Redis caching and session management
+- JWT authentication with sessions
 - Money transfers between accounts
 - Rate limiting and security
 - PDF/CSV statement generation
-- Real-time notifications
+- Real-time WebSocket notifications
+- OpenAPI/Swagger documentation
 - Docker support
 
 ## Getting Started
@@ -22,12 +24,15 @@ cd go-bank
 # Copy environment file
 cp .env.example .env
 
-# Start database (using Docker)
+# Start database and Redis (using Docker)
 docker run -d --name postgres \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=postgres \
   -e POSTGRES_DB=gobank \
   -p 5432:5432 postgres:15
+
+docker run -d --name redis \
+  -p 6379:6379 redis:7-alpine
 
 # Run migrations
 cat db/migrations/*.up.sql | psql -U postgres -d gobank
@@ -36,7 +41,8 @@ cat db/migrations/*.up.sql | psql -U postgres -d gobank
 go run cmd/api/main.go
 ```
 
-Server runs on `http://localhost:8080`
+Server runs on `http://localhost:8080`  
+API Documentation: `http://localhost:8080/swagger/`
 
 ## API Usage
 
@@ -65,12 +71,14 @@ curl -X POST http://localhost:8080/api/v1/accounts \
 ## Project Structure
 
 ```
-cmd/api/                 - Main application
-internal/domain/         - Business models
-internal/usecase/        - Business logic  
-internal/delivery/http/  - HTTP handlers
-internal/repository/     - Database access
-db/migrations/           - SQL migrations
+cmd/api/                    - Main application
+internal/domain/            - Business models
+internal/usecase/           - Business logic  
+internal/delivery/http/     - HTTP handlers
+internal/repository/        - Database access
+internal/infrastructure/    - Redis, cache, sessions
+db/migrations/              - SQL migrations
+docs/                       - Swagger documentation
 ```
 
 ## Development
@@ -83,15 +91,17 @@ make docker-up  # Start with Docker
 
 ## Features Completed
 
-- User registration/login with JWT
-- Account creation and management
-- Money transfers with proper transactions
-- Transaction history
-- Rate limiting (security)
+- User registration/login with JWT + Redis sessions
+- Account creation and management with caching
+- Money transfers with proper ACID transactions
+- Transaction history with pagination
+- Rate limiting and security middleware
 - PDF and CSV statement generation
 - WebSocket real-time notifications
-- Input validation
+- Input validation and error handling
 - Idempotency for transfers
+- Redis caching for performance optimization
+- OpenAPI/Swagger documentation
 
 ## CI/CD
 
