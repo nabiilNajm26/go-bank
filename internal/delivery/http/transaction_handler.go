@@ -46,7 +46,8 @@ func (h *TransactionHandler) Transfer(c *fiber.Ctx) error {
 }
 
 func (h *TransactionHandler) GetTransactionHistory(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uuid.UUID)
+	// userID can be used for additional validation if needed
+	_ = c.Locals("userID").(uuid.UUID)
 	
 	// For simplicity, we'll get transactions for the user's first account
 	// In production, you'd want to handle this differently
