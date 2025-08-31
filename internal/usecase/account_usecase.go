@@ -16,6 +16,8 @@ import (
 var (
 	ErrAccountNotFound = errors.New("account not found")
 	ErrInsufficientBalance = errors.New("insufficient balance")
+	ErrAccountNotEmpty = errors.New("account has non-zero balance")
+	ErrUnauthorized = errors.New("unauthorized access")
 )
 
 type AccountUseCase struct {
@@ -72,6 +74,58 @@ func (uc *AccountUseCase) GetAccount(ctx context.Context, accountID uuid.UUID) (
 
 func (uc *AccountUseCase) GetUserAccounts(ctx context.Context, userID uuid.UUID) ([]*domain.Account, error) {
 	return uc.accountRepo.GetByUserID(ctx, userID)
+}
+
+func (uc *AccountUseCase) UpdateAccount(ctx context.Context, userID, accountID uuid.UUID, req *domain.UpdateAccountRequest) (*domain.Account, error) {
+	account, err := uc.accountRepo.GetByID(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	if account == nil {
+		return nil, ErrAccountNotFound
+	}
+
+	// Check if user owns this account
+	if account.UserID != userID {
+		return nil, ErrUnauthorized
+	}
+
+	// Update fields if provided
+	if req.AccountType != nil {
+		account.AccountType = *req.AccountType
+	}
+	if req.Status != nil {
+		account.Status = *req.Status
+	}
+	account.UpdatedAt = time.Now()
+
+	if err := uc.accountRepo.Update(ctx, account); err != nil {
+		return nil, err
+	}
+
+	return account, nil
+}
+
+func (uc *AccountUseCase) DeleteAccount(ctx context.Context, userID, accountID uuid.UUID) error {
+	account, err := uc.accountRepo.GetByID(ctx, accountID)
+	if err != nil {
+		return err
+	}
+	if account == nil {
+		return ErrAccountNotFound
+	}
+
+	// Check if user owns this account
+	if account.UserID != userID {
+		return ErrUnauthorized
+	}
+
+	// Safety check: don't delete accounts with balance
+	if !account.Balance.IsZero() {
+		return ErrAccountNotEmpty
+	}
+
+	return uc.accountRepo.Delete(ctx, accountID)
 }
 
 func (uc *AccountUseCase) generateAccountNumber() string {

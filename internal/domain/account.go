@@ -38,6 +38,11 @@ type CreateAccountRequest struct {
 	Currency    string      `json:"currency" validate:"required,len=3"`
 }
 
+type UpdateAccountRequest struct {
+	AccountType *AccountType `json:"account_type,omitempty" validate:"omitempty,oneof=savings checking deposit"`
+	Status      *AccountStatus `json:"status,omitempty" validate:"omitempty,oneof=active inactive frozen"`
+}
+
 type AccountResponse struct {
 	*Account
 	User *User `json:"user,omitempty"`

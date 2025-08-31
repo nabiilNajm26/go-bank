@@ -120,7 +120,7 @@ func main() {
 	accountUseCase := usecase.NewAccountUseCase(accountRepo, userRepo)
 	transactionUseCase := usecase.NewTransactionUseCase(transactionRepo, accountRepo, db)
 	statementUseCase := usecase.NewStatementUseCase(accountRepo, transactionRepo)
-	userUseCase := usecase.NewUserUseCase(userRepo)
+	userUseCase := usecase.NewUserUseCase(userRepo, accountRepo)
 
 	// Initialize S3 service (optional)
 	var s3Service *s3.S3Service
@@ -181,6 +181,8 @@ func main() {
 	accounts.Post("/", accountHandler.CreateAccount)
 	accounts.Get("/", accountHandler.GetUserAccounts)
 	accounts.Get("/:id", accountHandler.GetAccount)
+	accounts.Put("/:id", accountHandler.UpdateAccount)
+	accounts.Delete("/:id", accountHandler.DeleteAccount)
 
 	// Transaction routes
 	transactions := protected.Group("/transactions")
@@ -195,6 +197,8 @@ func main() {
 	// User routes
 	users := protected.Group("/users")
 	users.Get("/profile", userHandler.GetProfile)
+	users.Put("/profile", userHandler.UpdateProfile)
+	users.Delete("/profile", userHandler.DeleteProfile)
 	if s3Service != nil {
 		users.Use(middleware.FileUploadMiddleware())
 		users.Post("/profile/image", userHandler.UploadProfileImage)

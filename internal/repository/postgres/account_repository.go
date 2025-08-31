@@ -82,11 +82,12 @@ func (r *accountRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (
 func (r *accountRepository) Update(ctx context.Context, account *domain.Account) error {
 	query := `
 		UPDATE accounts 
-		SET balance = $2, status = $3, updated_at = CURRENT_TIMESTAMP
+		SET account_type = $2, balance = $3, status = $4, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1`
 
 	_, err := r.db.ExecContext(ctx, query,
 		account.ID,
+		account.AccountType,
 		account.Balance,
 		account.Status,
 	)

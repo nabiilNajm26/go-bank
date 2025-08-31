@@ -1,11 +1,11 @@
 basePath: /api/v1
 definitions:
-  domain.Account:
+  github_com_nabiilNajm26_go-bank_internal_domain.Account:
     properties:
       account_number:
         type: string
       account_type:
-        $ref: '#/definitions/domain.AccountType'
+        $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.AccountType'
       balance:
         type: number
       created_at:
@@ -15,13 +15,13 @@ definitions:
       id:
         type: string
       status:
-        $ref: '#/definitions/domain.AccountStatus'
+        $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.AccountStatus'
       updated_at:
         type: string
       user_id:
         type: string
     type: object
-  domain.AccountStatus:
+  github_com_nabiilNajm26_go-bank_internal_domain.AccountStatus:
     enum:
     - active
     - inactive
@@ -33,7 +33,7 @@ definitions:
     - AccountStatusInactive
     - AccountStatusFrozen
     - AccountStatusClosed
-  domain.AccountType:
+  github_com_nabiilNajm26_go-bank_internal_domain.AccountType:
     enum:
     - savings
     - checking
@@ -43,7 +43,7 @@ definitions:
     - AccountTypeSavings
     - AccountTypeChecking
     - AccountTypeDeposit
-  domain.AuthResponse:
+  github_com_nabiilNajm26_go-bank_internal_domain.AuthResponse:
     properties:
       access_token:
         type: string
@@ -52,13 +52,13 @@ definitions:
       refresh_token:
         type: string
       user:
-        $ref: '#/definitions/domain.User'
+        $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.User'
     type: object
-  domain.CreateAccountRequest:
+  github_com_nabiilNajm26_go-bank_internal_domain.CreateAccountRequest:
     properties:
       account_type:
         allOf:
-        - $ref: '#/definitions/domain.AccountType'
+        - $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.AccountType'
         enum:
         - savings
         - checking
@@ -69,7 +69,7 @@ definitions:
     - account_type
     - currency
     type: object
-  domain.CreateUserRequest:
+  github_com_nabiilNajm26_go-bank_internal_domain.CreateUserRequest:
     properties:
       email:
         type: string
@@ -87,7 +87,7 @@ definitions:
     - full_name
     - password
     type: object
-  domain.LoginRequest:
+  github_com_nabiilNajm26_go-bank_internal_domain.LoginRequest:
     properties:
       email:
         type: string
@@ -97,7 +97,35 @@ definitions:
     - email
     - password
     type: object
-  domain.User:
+  github_com_nabiilNajm26_go-bank_internal_domain.UpdateAccountRequest:
+    properties:
+      account_type:
+        allOf:
+        - $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.AccountType'
+        enum:
+        - savings
+        - checking
+        - deposit
+      status:
+        allOf:
+        - $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.AccountStatus'
+        enum:
+        - active
+        - inactive
+        - frozen
+    type: object
+  github_com_nabiilNajm26_go-bank_internal_domain.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      full_name:
+        maxLength: 255
+        minLength: 3
+        type: string
+      phone:
+        type: string
+    type: object
+  github_com_nabiilNajm26_go-bank_internal_domain.User:
     properties:
       created_at:
         type: string
@@ -134,14 +162,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/domain.CreateAccountRequest'
+          $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.CreateAccountRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/domain.Account'
+            $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.Account'
         "400":
           description: Bad Request
           schema:
@@ -165,6 +193,123 @@ paths:
       summary: Create new account
       tags:
       - accounts
+  /accounts/{id}:
+    delete:
+      description: Delete account if it has zero balance (safety measure)
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete account
+      tags:
+      - accounts
+    put:
+      consumes:
+      - application/json
+      description: Update account name or other details for authenticated user
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Account update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.UpdateAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.Account'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update account details
+      tags:
+      - accounts
   /auth/login:
     post:
       consumes:
@@ -176,14 +321,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/domain.LoginRequest'
+          $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/domain.AuthResponse'
+            $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.AuthResponse'
         "400":
           description: Bad Request
           schema:
@@ -216,14 +361,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/domain.CreateUserRequest'
+          $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.CreateUserRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/domain.AuthResponse'
+            $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.AuthResponse'
         "400":
           description: Bad Request
           schema:
@@ -245,6 +390,169 @@ paths:
       summary: Register a new user
       tags:
       - auth
+  /users/profile:
+    delete:
+      description: Delete user account and all associated data (irreversible)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete user profile
+      tags:
+      - users
+    get:
+      description: Get current user profile information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.User'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Update user profile information (name, email, phone)
+      parameters:
+      - description: User update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_nabiilNajm26_go-bank_internal_domain.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update user profile
+      tags:
+      - users
+  /users/profile/image:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload profile image to S3 with safety limits (5MB max, PNG/JPG
+        only)
+      parameters:
+      - description: Profile image file (PNG, JPG, JPEG, max 5MB)
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "413":
+          description: Request Entity Too Large
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Upload profile image
+      tags:
+      - users
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

@@ -31,8 +31,9 @@ type LoginRequest struct {
 }
 
 type UpdateUserRequest struct {
-	FullName string `json:"full_name,omitempty" validate:"omitempty,min=3,max=255"`
-	Phone    string `json:"phone,omitempty" validate:"omitempty,e164"`
+	Email    *string `json:"email,omitempty" validate:"omitempty,email"`
+	FullName *string `json:"full_name,omitempty" validate:"omitempty,min=3,max=255"`
+	Phone    *string `json:"phone,omitempty" validate:"omitempty,e164"`
 }
 
 type AuthResponse struct {
