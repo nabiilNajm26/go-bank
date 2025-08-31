@@ -9,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/contrib/websocket"
 	"github.com/joho/godotenv"
 	
 	"github.com/nabiilNajm26/go-bank/internal/delivery/http"
@@ -62,11 +63,14 @@ func main() {
 	authUseCase := usecase.NewAuthUseCase(userRepo, jwtManager)
 	accountUseCase := usecase.NewAccountUseCase(accountRepo, userRepo)
 	transactionUseCase := usecase.NewTransactionUseCase(transactionRepo, accountRepo, db)
+	statementUseCase := usecase.NewStatementUseCase(accountRepo, transactionRepo)
 
 	// Initialize handlers
 	authHandler := http.NewAuthHandler(authUseCase)
 	accountHandler := http.NewAccountHandler(accountUseCase)
 	transactionHandler := http.NewTransactionHandler(transactionUseCase)
+	statementHandler := http.NewStatementHandler(statementUseCase)
+	wsHandler := http.NewWebSocketHandler()
 
 	// Setup Fiber app
 	app := fiber.New(fiber.Config{
@@ -78,21 +82,24 @@ func main() {
 	app.Use(recover.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization, Idempotency-Key",
 		AllowMethods: "GET, HEAD, PUT, PATCH, POST, DELETE",
 	}))
+	app.Use(middleware.RateLimitMiddleware())
 
 	// Routes
 	api := app.Group("/api/v1")
 
-	// Auth routes
+	// Auth routes (with strict rate limiting)
 	auth := api.Group("/auth")
+	auth.Use(middleware.StrictRateLimitMiddleware())
 	auth.Post("/register", authHandler.Register)
 	auth.Post("/login", authHandler.Login)
 	auth.Post("/refresh", authHandler.RefreshToken)
 
 	// Protected routes
 	protected := api.Use(middleware.AuthMiddleware(jwtManager))
+	protected.Use(middleware.IdempotencyMiddleware(db))
 
 	// Account routes
 	accounts := protected.Group("/accounts")
@@ -104,6 +111,14 @@ func main() {
 	transactions := protected.Group("/transactions")
 	transactions.Post("/transfer", transactionHandler.Transfer)
 	transactions.Get("/", transactionHandler.GetTransactionHistory)
+
+	// Statement routes
+	statements := protected.Group("/statements")
+	statements.Get("/:account_id/pdf", statementHandler.GeneratePDFStatement)
+	statements.Get("/:account_id/csv", statementHandler.GenerateCSVStatement)
+
+	// WebSocket route
+	app.Get("/ws", websocket.New(wsHandler.HandleConnection))
 
 	// Health check
 	app.Get("/health", func(c *fiber.Ctx) error {
