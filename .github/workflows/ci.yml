@@ -69,15 +69,35 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
+    - name: Build Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        load: true
+        tags: gobank:latest
+
     - name: Login to DockerHub
+      if: ${{ secrets.DOCKER_USERNAME && secrets.DOCKER_PASSWORD }}
       uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build and push
+    - name: Push to DockerHub
+      if: ${{ secrets.DOCKER_USERNAME && secrets.DOCKER_PASSWORD }}
       uses: docker/build-push-action@v4
       with:
         context: .
         push: true
         tags: ${{ secrets.DOCKER_USERNAME }}/gobank:latest,${{ secrets.DOCKER_USERNAME }}/gobank:${{ github.sha }}
+
+    - name: Docker build completed
+      run: |
+        echo "✅ Docker image built successfully"
+        echo "Image: gobank:latest"
+        if [ -n "${{ secrets.DOCKER_USERNAME }}" ]; then
+          echo "🚀 Image pushed to DockerHub: ${{ secrets.DOCKER_USERNAME }}/gobank:latest"
+        else
+          echo "ℹ️  Image not pushed - DockerHub credentials not configured"
+          echo "To push images, add DOCKER_USERNAME and DOCKER_PASSWORD secrets"
+        fi
