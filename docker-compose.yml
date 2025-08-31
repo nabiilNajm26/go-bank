@@ -44,6 +44,10 @@ services:
       DB_PASSWORD: postgres
       DB_NAME: gobank
       DB_SSLMODE: disable
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: 0
       JWT_ACCESS_SECRET: your-access-secret-key
       JWT_REFRESH_SECRET: your-refresh-secret-key
       PORT: 8080

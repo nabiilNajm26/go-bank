@@ -14,7 +14,12 @@ import (
 	
 	"github.com/nabiilNajm26/go-bank/internal/delivery/http"
 	"github.com/nabiilNajm26/go-bank/internal/delivery/http/middleware"
+	"github.com/nabiilNajm26/go-bank/internal/infrastructure/cache"
 	"github.com/nabiilNajm26/go-bank/internal/infrastructure/database"
+	"github.com/nabiilNajm26/go-bank/internal/infrastructure/redis"
+	"github.com/nabiilNajm26/go-bank/internal/infrastructure/session"
+	"github.com/nabiilNajm26/go-bank/internal/repository"
+	"github.com/nabiilNajm26/go-bank/internal/repository/cached"
 	"github.com/nabiilNajm26/go-bank/internal/repository/postgres"
 	"github.com/nabiilNajm26/go-bank/internal/usecase"
 	"github.com/nabiilNajm26/go-bank/pkg/utils"
@@ -46,10 +51,37 @@ func main() {
 	}
 	defer db.Close()
 
-	// Initialize repositories
-	userRepo := postgres.NewUserRepository(db)
-	accountRepo := postgres.NewAccountRepository(db)
+	// Initialize Redis
+	redisClient, err := redis.NewRedisClient()
+	if err != nil {
+		log.Printf("Warning: Failed to connect to Redis: %v. Running without cache.", err)
+		redisClient = nil
+	}
+
+	// Initialize cache service
+	var cacheService *cache.CacheService
+	if redisClient != nil {
+		cacheService = cache.NewCacheService(redisClient)
+		defer redisClient.Close()
+		log.Println("✅ Redis connected successfully")
+	}
+
+	// Initialize repositories (with caching if Redis available)
+	userRepoBase := postgres.NewUserRepository(db)
+	accountRepoBase := postgres.NewAccountRepository(db)
 	transactionRepo := postgres.NewTransactionRepository(db)
+
+	var userRepo repository.UserRepository
+	var accountRepo repository.AccountRepository
+
+	if cacheService != nil {
+		userRepo = cached.NewCachedUserRepository(userRepoBase, cacheService)
+		accountRepo = cached.NewCachedAccountRepository(accountRepoBase, cacheService)
+		log.Println("✅ Cache-enabled repositories initialized")
+	} else {
+		userRepo = userRepoBase
+		accountRepo = accountRepoBase
+	}
 
 	// Initialize JWT manager
 	jwtManager := utils.NewJWTManager(
@@ -59,8 +91,19 @@ func main() {
 		24*time.Hour*7,
 	)
 
+	// Initialize session service
+	var sessionService *session.SessionService
+	if cacheService != nil {
+		sessionService = session.NewSessionService(cacheService)
+	}
+
 	// Initialize use cases
-	authUseCase := usecase.NewAuthUseCase(userRepo, jwtManager)
+	var authUseCase *usecase.AuthUseCase
+	if sessionService != nil {
+		authUseCase = usecase.NewAuthUseCase(userRepo, jwtManager, sessionService)
+	} else {
+		authUseCase = usecase.NewAuthUseCase(userRepo, jwtManager, nil)
+	}
 	accountUseCase := usecase.NewAccountUseCase(accountRepo, userRepo)
 	transactionUseCase := usecase.NewTransactionUseCase(transactionRepo, accountRepo, db)
 	statementUseCase := usecase.NewStatementUseCase(accountRepo, transactionRepo)

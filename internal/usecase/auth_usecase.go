@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nabiilNajm26/go-bank/internal/domain"
+	"github.com/nabiilNajm26/go-bank/internal/infrastructure/session"
 	"github.com/nabiilNajm26/go-bank/internal/repository"
 	"github.com/nabiilNajm26/go-bank/pkg/utils"
 )
@@ -18,14 +19,16 @@ var (
 )
 
 type AuthUseCase struct {
-	userRepo   repository.UserRepository
-	jwtManager *utils.JWTManager
+	userRepo       repository.UserRepository
+	jwtManager     *utils.JWTManager
+	sessionService *session.SessionService
 }
 
-func NewAuthUseCase(userRepo repository.UserRepository, jwtManager *utils.JWTManager) *AuthUseCase {
+func NewAuthUseCase(userRepo repository.UserRepository, jwtManager *utils.JWTManager, sessionService *session.SessionService) *AuthUseCase {
 	return &AuthUseCase{
-		userRepo:   userRepo,
-		jwtManager: jwtManager,
+		userRepo:       userRepo,
+		jwtManager:     jwtManager,
+		sessionService: sessionService,
 	}
 }
 
@@ -58,9 +61,28 @@ func (uc *AuthUseCase) Register(ctx context.Context, req *domain.CreateUserReque
 		return nil, err
 	}
 
-	accessToken, refreshToken, err := uc.jwtManager.GenerateTokenPair(user.ID, user.Email)
-	if err != nil {
-		return nil, err
+	var accessToken, refreshToken string
+	
+	if uc.sessionService != nil {
+		sessionID, err := uc.sessionService.CreateSession(ctx, user.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		accessToken, err = uc.sessionService.GenerateTokenWithSession(user.ID, sessionID, uc.jwtManager.GetAccessSecret(), time.Hour)
+		if err != nil {
+			return nil, err
+		}
+
+		refreshToken, err = uc.sessionService.GenerateTokenWithSession(user.ID, sessionID, uc.jwtManager.GetRefreshSecret(), 7*24*time.Hour)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		accessToken, refreshToken, err = uc.jwtManager.GenerateTokenPair(user.ID, user.Email)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &domain.AuthResponse{
@@ -84,9 +106,28 @@ func (uc *AuthUseCase) Login(ctx context.Context, req *domain.LoginRequest) (*do
 		return nil, ErrInvalidCredentials
 	}
 
-	accessToken, refreshToken, err := uc.jwtManager.GenerateTokenPair(user.ID, user.Email)
-	if err != nil {
-		return nil, err
+	var accessToken, refreshToken string
+	
+	if uc.sessionService != nil {
+		sessionID, err := uc.sessionService.CreateSession(ctx, user.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		accessToken, err = uc.sessionService.GenerateTokenWithSession(user.ID, sessionID, uc.jwtManager.GetAccessSecret(), time.Hour)
+		if err != nil {
+			return nil, err
+		}
+
+		refreshToken, err = uc.sessionService.GenerateTokenWithSession(user.ID, sessionID, uc.jwtManager.GetRefreshSecret(), 7*24*time.Hour)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		accessToken, refreshToken, err = uc.jwtManager.GenerateTokenPair(user.ID, user.Email)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &domain.AuthResponse{

@@ -95,3 +95,11 @@ func (j *JWTManager) verifyToken(tokenString, secret string) (*Claims, error) {
 
 	return claims, nil
 }
+
+func (j *JWTManager) GetAccessSecret() string {
+	return j.accessSecret
+}
+
+func (j *JWTManager) GetRefreshSecret() string {
+	return j.refreshSecret
+}
