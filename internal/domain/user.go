@@ -30,6 +30,11 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
+type UpdateUserRequest struct {
+	FullName string `json:"full_name,omitempty" validate:"omitempty,min=3,max=255"`
+	Phone    string `json:"phone,omitempty" validate:"omitempty,e164"`
+}
+
 type AuthResponse struct {
 	User         *User  `json:"user"`
 	AccessToken  string `json:"access_token"`

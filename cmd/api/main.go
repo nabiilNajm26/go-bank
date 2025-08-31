@@ -10,6 +10,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"time"
@@ -28,6 +29,7 @@ import (
 	"github.com/nabiilNajm26/go-bank/internal/infrastructure/cache"
 	"github.com/nabiilNajm26/go-bank/internal/infrastructure/database"
 	"github.com/nabiilNajm26/go-bank/internal/infrastructure/redis"
+	"github.com/nabiilNajm26/go-bank/internal/infrastructure/s3"
 	"github.com/nabiilNajm26/go-bank/internal/infrastructure/session"
 	"github.com/nabiilNajm26/go-bank/internal/repository"
 	"github.com/nabiilNajm26/go-bank/internal/repository/cached"
@@ -118,12 +120,28 @@ func main() {
 	accountUseCase := usecase.NewAccountUseCase(accountRepo, userRepo)
 	transactionUseCase := usecase.NewTransactionUseCase(transactionRepo, accountRepo, db)
 	statementUseCase := usecase.NewStatementUseCase(accountRepo, transactionRepo)
+	userUseCase := usecase.NewUserUseCase(userRepo)
+
+	// Initialize S3 service (optional)
+	var s3Service *s3.S3Service
+	s3Service, err = s3.NewS3Service()
+	if err != nil {
+		log.Printf("Warning: S3 not configured: %v. Profile image upload disabled.", err)
+		s3Service = nil
+	} else {
+		log.Println("✅ S3 service initialized")
+		// Setup lifecycle policies for cost control
+		if err := s3Service.SetupBucketLifecycle(context.Background()); err != nil {
+			log.Printf("Warning: Failed to setup S3 lifecycle: %v", err)
+		}
+	}
 
 	// Initialize handlers
 	authHandler := http.NewAuthHandler(authUseCase)
 	accountHandler := http.NewAccountHandler(accountUseCase)
 	transactionHandler := http.NewTransactionHandler(transactionUseCase)
 	statementHandler := http.NewStatementHandler(statementUseCase)
+	userHandler := http.NewUserHandler(userUseCase, s3Service)
 	wsHandler := http.NewWebSocketHandler()
 
 	// Setup Fiber app
@@ -173,6 +191,14 @@ func main() {
 	statements := protected.Group("/statements")
 	statements.Get("/:account_id/pdf", statementHandler.GeneratePDFStatement)
 	statements.Get("/:account_id/csv", statementHandler.GenerateCSVStatement)
+
+	// User routes
+	users := protected.Group("/users")
+	users.Get("/profile", userHandler.GetProfile)
+	if s3Service != nil {
+		users.Use(middleware.FileUploadMiddleware())
+		users.Post("/profile/image", userHandler.UploadProfileImage)
+	}
 
 	// WebSocket route
 	app.Get("/ws", websocket.New(wsHandler.HandleConnection))
