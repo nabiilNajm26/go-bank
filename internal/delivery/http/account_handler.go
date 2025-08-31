@@ -17,6 +17,19 @@ func NewAccountHandler(accountUseCase *usecase.AccountUseCase) *AccountHandler {
 	}
 }
 
+// CreateAccount godoc
+// @Summary Create new account
+// @Description Create a new bank account for authenticated user
+// @Tags accounts
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body domain.CreateAccountRequest true "Account creation request"
+// @Success 201 {object} domain.Account
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /accounts [post]
 func (h *AccountHandler) CreateAccount(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(uuid.UUID)
 

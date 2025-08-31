@@ -1,3 +1,12 @@
+// @title GoBank API
+// @version 1.0
+// @description Banking API with authentication, transfers, and caching
+// @host localhost:8080
+// @BasePath /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 package main
 
 import (
@@ -11,7 +20,9 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/joho/godotenv"
+	"github.com/swaggo/fiber-swagger"
 	
+	_ "github.com/nabiilNajm26/go-bank/docs"
 	"github.com/nabiilNajm26/go-bank/internal/delivery/http"
 	"github.com/nabiilNajm26/go-bank/internal/delivery/http/middleware"
 	"github.com/nabiilNajm26/go-bank/internal/infrastructure/cache"
@@ -129,6 +140,9 @@ func main() {
 		AllowMethods: "GET, HEAD, PUT, PATCH, POST, DELETE",
 	}))
 	app.Use(middleware.RateLimitMiddleware())
+
+	// Swagger documentation
+	app.Get("/swagger/*", fiberSwagger.WrapHandler)
 
 	// Routes
 	api := app.Group("/api/v1")
